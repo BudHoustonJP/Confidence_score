@@ -30,14 +30,13 @@
   .hidden { display:none; }
   .btn { padding:10px 14px; border-radius:10px; border:1px solid #111827; background:#111827; color:white; cursor:pointer; }
   .btn[disabled] { background: var(--disabled); border-color: var(--disabled); cursor:not-allowed; }
-  details summary { cursor:pointer; font-weight:600; }
   .hr { height:1px; background:var(--border); margin:16px 0; }
-  .error { color: var(--danger); font-size: 12px; margin-top: 6px; }
+  .error { color: var(--danger); font-size: 12px; }
   .toast { position: fixed; right: 16px; bottom: 16px; padding: 12px 16px; border-radius: 10px; color:white; display:none; }
   .toast.ok { background: var(--ok); }
   .toast.err { background: var(--danger); }
   @media print {
-    .toolbar, details, .logo { display:none !important; }
+    .toolbar, .logo { display:none !important; }
     body { margin: 0.5in; }
     .card { box-shadow:none; border:none; padding:0; }
   }
@@ -81,23 +80,6 @@
 
   <div id="evch" class="card"></div>
   <div id="pop" class="card"></div>
-
-  <div class="card">
-    <details>
-      <summary>Admin: Edit schema JSON and download</summary>
-      <p class="muted">Fine-tune labels, option sets, and thresholds here. Click Download to save a self-contained HTML file.</p>
-      <textarea id="schemaTA" rows="14" style="width:100%; font-family:ui-monospace, Menlo, Consolas, monospace;"></textarea>
-      <div style="height:8px"></div>
-      <button class="btn" id="applySchema">Apply changes</button>
-      <button class="btn" id="downloadPage" style="margin-left:8px">Download this page</button>
-      <div class="hr"></div>
-      <label for="gsEndpoint">Google Sheets Web App URL</label>
-      <input id="gsEndpoint" type="text" placeholder="Paste your Apps Script Web App URL here">
-      <div class="muted">Saved in your browser only (localStorage). Required for "Send Results".</div>
-      <div style="height:8px"></div>
-      <button class="btn" id="saveEndpoint">Save Endpoint</button>
-    </details>
-  </div>
 </div>
 
 <div id="toast" class="toast"></div>
@@ -105,6 +87,7 @@
 <script>
 const SCHEMA = {"ev_ch": {"title": "Christian & Evangelical % \u2014 Confidence Evaluation", "method_question": {"id": "ev.method", "label": "Q1. What is the primary method of data collection?", "options": [{"label": "Church / Network Census Count", "value": "census"}, {"label": "Random Sample Survey", "value": "survey"}, {"label": "Delphi Method (Informed Consensus)", "value": "delphi"}, {"label": "Government Census", "value": "gov_census"}, {"label": "Fieldworker or Individual Observation", "value": "field"}, {"label": "Other / Not Specified", "value": "other"}]}, "general": [{"id": "ev.q2", "label": "Q2. Does the data include specific quantitative information (e.g., believers, churches, baptisms)?", "options": [{"label": "Yes (specific counts given)", "score": 3}, {"label": "Partial / In ranges", "score": 2}, {"label": "No / Not specified", "score": 0}]}, {"id": "ev.q3", "label": "Q3. Is there a documented methodology for how the data was collected?", "options": [{"label": "Clear, documented methodology", "score": 3}, {"label": "Partially documented", "score": 2}, {"label": "Not documented / Unknown", "score": 0}]}, {"id": "ev.q4", "label": "Q4. How engaged is the source with the people group?", "options": [{"label": "Long-term, highly trusted, accurate", "score": 6}, {"label": "Engaged but new/indirect", "score": 3}, {"label": "Not engaged or unknown", "score": 0}]}, {"id": "ev.q5", "label": "Q5. Has the data been confirmed or aligned with other known sources or field reports?", "options": [{"label": "Confirmed by multiple sources", "score": 3}, {"label": "Mixed: some confirm / some dispute", "score": 2}, {"label": "Not confirmed / unknown", "score": 0}]}, {"id": "ev.q6", "label": "Q6. How internally consistent is the data (population vs. church counts, believers vs. churches, etc.)?", "options": [{"label": "Consistent", "score": 3}, {"label": "Mostly consistent with minor issues or gaps", "score": 2}, {"label": "Inconsistent / major gaps", "score": 0}]}, {"id": "ev.q7", "label": "Q7. How transparent is the documentation or reporting process?", "options": [{"label": "Highly transparent", "score": 3}, {"label": "Somewhat transparent", "score": 2}, {"label": "Not documented", "score": 0}]}, {"id": "ev.q8", "label": "Q8. How likely is the data influenced by organizational goals or advocacy motives?", "options": [{"label": "Low / unlikely", "score": 3}, {"label": "Some influence likely but not dominant", "score": 2}, {"label": "High influence likely", "score": 0}]}, {"id": "ev.q9", "label": "Q9. How reliable is this source based on past reporting or engagement?", "options": [{"label": "Strong track record across submissions", "score": 6}, {"label": "Moderate / mixed track record", "score": 3}, {"label": "Unknown / weak track record", "score": 0}]}], "branches": {"census": [{"id": "ev.cen.q10", "label": "Q10. Was this a full enumeration?", "options": [{"label": "Yes", "score": 3}, {"label": "Partially", "score": 2}, {"label": "No / Unknown", "score": 0}]}, {"id": "ev.cen.q11", "label": "Q11. Adjusted for duplication, bias, or underreporting?", "options": [{"label": "Yes", "score": 3}, {"label": "Somewhat", "score": 2}, {"label": "No / Unknown", "score": 0}]}, {"id": "ev.cen.q12", "label": "Q12. Steps taken to reduce duplication across networks?", "options": [{"label": "Yes", "score": 3}, {"label": "Somewhat", "score": 2}, {"label": "No / Unknown", "score": 0}]}], "survey": [{"id": "ev.sur.q13", "label": "Q13. Confidence interval / margin of error?", "options": [{"label": "Within accepted range (e.g., \u00b15%)", "score": 3}, {"label": "Moderate (e.g., \u00b110%)", "score": 2}, {"label": "Unknown / high", "score": 0}]}, {"id": "ev.sur.q14", "label": "Q14. Stratified, randomized sampling used?", "options": [{"label": "Yes", "score": 3}, {"label": "Partially", "score": 2}, {"label": "No / Unknown", "score": 0}]}, {"id": "ev.sur.q15", "label": "Q15. Independently reviewed?", "options": [{"label": "Yes", "score": 3}, {"label": "Somewhat", "score": 2}, {"label": "No / Unknown", "score": 0}]}], "delphi": [{"id": "ev.del.q16", "label": "Q16. Number of participants", "options": [{"label": "Broad (diverse & sufficient)", "score": 3}, {"label": "Moderate", "score": 2}, {"label": "Limited / small", "score": 0}]}, {"id": "ev.del.q17", "label": "Q17. Percent within 10% agreement", "options": [{"label": "High (>= 80%)", "score": 3}, {"label": "Moderate (50\u201379%)", "score": 2}, {"label": "Low (< 50%) / Unknown", "score": 0}]}, {"id": "ev.del.q18", "label": "Q18. Network diversity of participants", "options": [{"label": "High (multiple orgs/streams)", "score": 3}, {"label": "Some diversity", "score": 2}, {"label": "Low / single stream", "score": 0}]}], "field": [{"id": "ev.fld.q19", "label": "Q19. How many areas/churches included?", "options": [{"label": "Many / multiple subregions", "score": 3}, {"label": "Some key areas", "score": 2}, {"label": "Few / single area", "score": 0}]}, {"id": "ev.fld.q20", "label": "Q20. Was the people group identity confirmed?", "options": [{"label": "Yes", "score": 3}, {"label": "Partially", "score": 2}, {"label": "No / Unknown", "score": 0}]}], "gov_census": [], "other": []}, "thresholds": [{"label": "Strong Confidence", "min": 30, "max": 39, "color": "#16a34a"}, {"label": "Moderate Confidence", "min": 23, "max": 29, "color": "#f59e0b"}, {"label": "Preliminary Confidence", "min": 15, "max": 22, "color": "#ef4444"}, {"label": "Unknown Confidence", "min": 0, "max": 14, "color": "#6b7280"}], "max_score": 39}, "population": {"title": "Population Estimate \u2014 Confidence Evaluation", "questions": [{"id": "pop.q1", "label": "1) Source of estimate", "options": [{"label": "Recent census with ethnic/religious identifiers", "score": 3}, {"label": "Community-led or extrapolated from known data", "score": 2}, {"label": "Fieldworker guess or unknown source", "score": 1}]}, {"id": "pop.q2", "label": "2) Estimation method", "options": [{"label": "Rigorous modeling or triangulated across sources", "score": 3}, {"label": "Extrapolated from known subregions", "score": 2}, {"label": "Anecdotal or undocumented method", "score": 1}]}, {"id": "pop.q3", "label": "3) Geographic coverage", "options": [{"label": "Nationwide or major regional coverage", "score": 3}, {"label": "Key areas, but not fully representative", "score": 2}, {"label": "Local or single-area observation", "score": 1}]}, {"id": "pop.q4", "label": "4) Recency", "options": [{"label": "Within the last 3 years", "score": 3}, {"label": "3\u201310 years ago", "score": 2}, {"label": "Over 10 years old or unknown", "score": 1}]}], "thresholds": [{"label": "Strong Confidence", "min": 11, "max": 12, "color": "#16a34a"}, {"label": "Moderate Confidence", "min": 8, "max": 10, "color": "#f59e0b"}, {"label": "Preliminary Confidence", "min": 5, "max": 7, "color": "#ef4444"}, {"label": "Unknown Confidence", "min": 0, "max": 4, "color": "#6b7280"}], "max_score": 12}};
 const PAGE_VERSION = "2025-08-11";
+const DEFAULT_ENDPOINT = "https://script.google.com/macros/s/AKfycbxYo8gWYB_drlecsMCRkY7RLd4OC8RsSSG_nyL13HPWuU18FHvgnNTo6d5AfL96tSL60g/exec";
 
 function showToast(text, kind='ok') {
   const t = document.getElementById('toast');
@@ -160,10 +143,10 @@ function respondentValid() {
   const country = document.getElementById('country').value.trim();
   const ok = name && email && people && country && /.+@.+\..+/.test(email);
   document.getElementById('infoError').classList.toggle('hidden', ok);
-  const endpointOk = (localStorage.getItem('gs_endpoint') || '').length > 0;
   document.getElementById('copyBtn').disabled = !ok;
   document.getElementById('printBtn').disabled = !ok;
-  document.getElementById('sendBtn').disabled = !(ok && endpointOk);
+  // With hardcoded endpoint, only respondent info gates the send button
+  document.getElementById('sendBtn').disabled = !ok;
   return ok;
 }
 
@@ -321,8 +304,6 @@ function formatTextSummary(data) {
 
 async function sendToGoogleSheet() {
   if (!respondentValid()) return alert('Please complete all required fields.');
-  const endpoint = localStorage.getItem('gs_endpoint') || '';
-  if (!endpoint) { showToast('Please paste your Google Sheets Web App URL in Admin.', 'err'); return; }
   const data = collectResults();
   const payload = {
     timestamp: data.info.timestamp,
@@ -338,7 +319,7 @@ async function sendToGoogleSheet() {
   };
 
   try {
-    const res = await fetch(endpoint, {
+    const res = await fetch(DEFAULT_ENDPOINT, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(payload)
@@ -347,16 +328,16 @@ async function sendToGoogleSheet() {
     throw new Error('HTTP ' + res.status);
   } catch (e) {
     try {
-      await fetch(endpoint, {
+      await fetch(DEFAULT_ENDPOINT, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(payload),
         mode: 'no-cors'
       });
-      showToast('Results sent (no-cors mode). Check your sheet.'); 
+      showToast('Results sent (no-cors mode). Check your sheet.');
     } catch (ee) {
       console.error(ee);
-      showToast('Send failed. Check endpoint or connection.', 'err');
+      showToast('Send failed. Check connection.', 'err');
     }
   }
 }
@@ -407,8 +388,8 @@ function initShareButtons() {
 function bindRespondentValidation() {
   ['name','email','people_group','country'].forEach(id => {
     document.getElementById(id).addEventListener('input', () => {
-      const ok = respondentValid();
-      // Refresh badges when info validity changes
+      respondentValid();
+      // refresh both sections when info validity changes
       const ev = document.getElementById('evch'); if (ev && ev.__recalc) ev.__recalc();
       const pop = document.getElementById('pop'); if (pop && pop.__recalc) pop.__recalc();
     });
@@ -416,31 +397,9 @@ function bindRespondentValidation() {
   respondentValid();
 }
 
-function initAdmin() {
-  const ta = document.getElementById('schemaTA');
-  ta.value = JSON.stringify(SCHEMA, null, 2);
-  document.getElementById('applySchema').onclick = () => {
-    try { const next = JSON.parse(ta.value); for (const k of Object.keys(next)) SCHEMA[k] = next[k]; renderAll(); }
-    catch (e) { alert('Invalid JSON in schema: ' + e.message); }
-  };
-  document.getElementById('downloadPage').onclick = () => {
-    const blob = new Blob([document.documentElement.outerHTML], {type: 'text/html'});
-    const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = 'data-confidence-evaluation.html'; a.click();
-  };
-
-  const input = document.getElementById('gsEndpoint');
-  input.value = localStorage.getItem('gs_endpoint') || '';
-  document.getElementById('saveEndpoint').onclick = () => {
-    const v = input.value.trim();
-    if (!/^https?:\/\//.test(v)) { showToast('Please paste a valid URL.', 'err'); return; }
-    localStorage.setItem('gs_endpoint', v);
-    respondentValid();
-    showToast('Endpoint saved.');
-  };
-}
-
 function renderAll() { renderEvCh('evch'); renderPopulation('pop'); initShareButtons(); bindRespondentValidation(); }
-renderAll(); initAdmin();
+
+renderAll();
 </script>
 </body>
 </html>
